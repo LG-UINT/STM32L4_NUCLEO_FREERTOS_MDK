@@ -47,6 +47,7 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
+#include <string.h>
 #include "FreeRTOS.h"
 #include "task.h"
 #include "cmsis_os.h"
@@ -58,26 +59,43 @@
 /* USER CODE END Includes */
 
 /* Variables -----------------------------------------------------------------*/
-
+#define CMD_LENGTH 16
+char cmd[CMD_LENGTH]= {0};
 /* USER CODE BEGIN Variables */
 osThreadId defaultTaskHandle;
 osThreadId Task1Handle;
 osThreadId Task2Handle;
 /* USER CODE END Variables */
-
+#define DISPLAY_MENU			'0'
+#define SUSPEND_TASK_1		'1'
+#define	RESUME_TASK_1			'2'
 /* Function prototypes -------------------------------------------------------*/
 
 /* USER CODE BEGIN FunctionPrototypes */
 void StartDefaultTask(void const * argument);
 void Task1Function(void const * argument);
 void Task2Function(void const * argument);
+void DisplayExampleMenu(void);
 /* USER CODE END FunctionPrototypes */
 
 /* Hook prototypes */
 
 /* USER CODE BEGIN Application */
+void DisplayExampleMenu(void)
+{
+    printf("	***********************************	\r\n");
+		printf("	Type number correspond to execute commands	\r\n");
+		printf("	0. Display Menu \r\n");
+		printf("	1. Suspend Task 1 \r\n");
+		printf("	2. Resume Task 1 \r\n");
+    printf("	***********************************	\r\n");
+}
+
+
 void createTasks( void )
 {
+		DisplayExampleMenu();
+	
     osThreadDef(defaultTask, StartDefaultTask, osPriorityAboveNormal, 0, 128);
     defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
@@ -91,18 +109,42 @@ void createTasks( void )
 /* StartDefaultTask function */
 void StartDefaultTask(void const * argument)
 {
-
+		osStatus osstatus;
     /* USER CODE BEGIN 5 */
     /* Infinite loop */
     for(;;)
     {
         osDelay(100);
 
-        uint8_t rec[15]= {0};
-
-        if( uart_read(rec,0xff) == 0)
+        if( uart_read((uint8_t*)cmd,0xff) == 0)
         {
-            printf("Receive %s \r\n",rec);
+            printf("Receive %s \r\n",cmd);
+            switch(cmd[0])
+            {
+						case DISPLAY_MENU:
+							DisplayExampleMenu();
+							break;
+            case SUSPEND_TASK_1:
+                osstatus = osThreadSuspend(Task1Handle);
+								if(osstatus == osOK)
+								{
+									printf("Suspend Task 1 done \r\n");
+								}
+                break;
+						case RESUME_TASK_1:
+								osstatus = osThreadResume(Task1Handle);
+								if(osstatus == osOK)
+								{
+									printf("Resume Task 1 done \r\n");
+								}
+								break;
+            default:
+                break;
+
+
+            }
+            memset(cmd,0,CMD_LENGTH);
+
         }
 
     }
@@ -112,7 +154,6 @@ void StartDefaultTask(void const * argument)
 /* StartDefaultTask function */
 void Task1Function(void const * argument)
 {
-
     /* USER CODE BEGIN 5 */
     /* Infinite loop */
     for(;;)
